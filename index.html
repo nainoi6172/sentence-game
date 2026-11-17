@@ -1,0 +1,246 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Sentence Builder</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Prompt:wght@400;500;600&display=swap">
+<style>
+/* Layout: one narrow column like a workbook page: level tabs, a scene card, the sentence strip, then the activity. */
+:root{
+  --bg:#eef1f6; --paper:#ffffff; --ink:#1d2a44; --muted:#586583; --line:#d3d9e6;
+  --accent:#d9480f; --on-accent:#ffffff; --accent-soft:#fdeadf;
+  --good:#2b8a3e; --good-soft:#e1f4e5; --bad:#c92a2a; --bad-soft:#fde6e6;
+  --f-display:"Fredoka","Prompt",system-ui,sans-serif;
+  --f-body:"Prompt",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#111827; --paper:#1a2336; --ink:#e8ecf5; --muted:#a0abc4; --line:#2e3a57;
+    --accent:#ff8a4c; --on-accent:#1a1205; --accent-soft:#3a2517;
+    --good:#69db7c; --good-soft:#1c3324; --bad:#ff8787; --bad-soft:#3b1f22; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#111827; --paper:#1a2336; --ink:#e8ecf5; --muted:#a0abc4; --line:#2e3a57;
+  --accent:#ff8a4c; --on-accent:#1a1205; --accent-soft:#3a2517;
+  --good:#69db7c; --good-soft:#1c3324; --bad:#ff8787; --bad-soft:#3b1f22; color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.5;
+  padding-block:20px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:720px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+header{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap}
+h1{font-family:var(--f-display);font-weight:600;font-size:clamp(26px,6vw,34px);margin:0;line-height:1.1;text-wrap:balance}
+.sub{margin:4px 0 0;color:var(--muted);font-size:14px}
+.score{font-family:var(--f-display);font-size:20px;font-variant-numeric:tabular-nums;background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:6px 14px}
+.score small{font-family:var(--f-body);font-size:12px;color:var(--muted);margin-right:6px;letter-spacing:.04em}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.tab{flex:1 1 90px;min-width:0;background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:8px 10px;text-align:left;display:flex;justify-content:space-between;align-items:center;gap:6px}
+.tab b{font-family:var(--f-display);font-weight:600;font-size:18px}
+.tab .st{color:var(--line);font-size:18px}
+.tab.on{border-color:var(--accent);background:var(--accent-soft)}
+.tab.won .st{color:var(--accent)}
+.seg{display:flex;background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:4px;gap:4px}
+.seg button{flex:1;border:0;background:transparent;padding:8px 10px;border-radius:9px;font-weight:500;min-width:0}
+.seg button.on{background:var(--accent);color:var(--on-accent)}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:16px}
+.scene{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center}
+.art{font-size:clamp(44px,13vw,72px);line-height:1.1;letter-spacing:.08em;transition:transform .3s}
+.scene.pulse .art{animation:pulse .9s ease 2}
+@keyframes pulse{50%{transform:scale(1.18)}}
+.cap{color:var(--muted);font-size:15px}
+.strip{display:flex;flex-wrap:wrap;gap:8px}
+.slot{min-width:0;border:1px dashed var(--line);border-radius:10px;padding:4px 10px 6px;background:var(--bg)}
+.slot .q{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.slot .w{display:block;font-family:var(--f-display);font-size:18px;min-height:27px;overflow-wrap:anywhere}
+.slot.cur{border:2px solid var(--accent);background:var(--accent-soft)}
+.slot.ok{border:1px solid var(--good);background:var(--good-soft)}
+.prompt{font-family:var(--f-display);font-size:22px;margin:0 0 4px}
+.prompt span{color:var(--muted);font-family:var(--f-body);font-size:15px;margin-left:6px}
+.opts{display:grid;gap:8px;margin-top:10px}
+.opt,.chip{background:var(--paper);border:2px solid var(--line);border-radius:12px;padding:12px 14px;font-family:var(--f-display);font-size:19px;text-align:left;overflow-wrap:anywhere}
+.opt:hover,.chip:hover{border-color:var(--accent)}
+.opt.bad{border-color:var(--bad);background:var(--bad-soft)}
+.opt.good{border-color:var(--good);background:var(--good-soft)}
+.chip{padding:8px 12px;font-size:18px}
+.chip.bad{border-color:var(--bad);background:var(--bad-soft)}
+.zone{display:flex;flex-wrap:wrap;gap:8px;min-height:56px;padding:10px;border:2px dashed var(--line);border-radius:12px;align-content:flex-start}
+.zone .hint{color:var(--muted);font-size:14px;align-self:center}
+.lab{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:12px 0 6px}
+.msg{min-height:24px;margin:10px 0 0;font-weight:500}
+.msg.bad{color:var(--bad)}.msg.good{color:var(--good)}
+.btn{background:var(--accent);color:var(--on-accent);border:0;border-radius:12px;padding:10px 18px;font-weight:600}
+.btn.alt{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.done h2{font-family:var(--f-display);font-weight:600;font-size:22px;margin:0 0 6px}
+.done .full{font-family:var(--f-display);font-size:20px;margin:8px 0 14px;overflow-wrap:anywhere}
+@media (prefers-reduced-motion:reduce){.scene.pulse .art{animation:none}.art{transition:none}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Sentence Builder</h1>
+      <p class="sub">ต่อประโยคภาษาอังกฤษจากภาพ 5 ด่าน</p>
+    </div>
+    <div class="score" aria-live="polite"><small>SCORE</small><span id="score">0</span></div>
+  </header>
+  <div class="row" id="tabs" role="group" aria-label="เลือกด่าน"></div>
+  <div class="seg" id="modes" role="group" aria-label="เลือกโหมด">
+    <button data-m="1">โหมด 1: เลือกคำ</button>
+    <button data-m="2">โหมด 2: เรียงประโยค</button>
+  </div>
+  <div class="card scene" id="scene"></div>
+  <div class="card"><div class="strip" id="strip"></div></div>
+  <div class="card" id="play"></div>
+</div>
+
+<script>
+var Q={who:["Who?","ใคร"],does:["Does what?","ทำอะไร"],what:["What?","อะไร"],where:["Where?","ที่ไหน"],when:["When?","เมื่อไร"],how:["How?","อย่างไร"],why:["Why?","ทำไม"]};
+var KEYS=["who","does","what","where","when","how","why"];
+var LEVELS=[
+ {art:"🌳🧒⚽",cap:"เด็กชายเตะฟุตบอลในสวน",w:{
+  who:["The boy","The girl","The teacher"],does:["kicks","reads","waters"],what:["a football","a book","a kite"],
+  where:["in the garden","in the library","in the kitchen"],when:["every afternoon","every morning","at midnight"],
+  how:["with a big smile","with a loud shout","with a sad face"],why:["because he loves sports","because he is sleepy","because it is raining"]}},
+ {art:"📚👧📖",cap:"เด็กหญิงอ่านหนังสือในห้องสมุด",w:{
+  who:["The girl","The boy","The doctor"],does:["reads","kicks","cooks"],what:["a story book","a football","a soup"],
+  where:["in the library","in the garden","in the bus"],when:["after school","at night","on the beach"],
+  how:["quietly","loudly","angrily"],why:["because she likes stories","because she is hungry","because it is hot"]}},
+ {art:"🏫🧒✏️",cap:"เด็กชายเรียนภาษาอังกฤษในห้องเรียน",w:{
+  who:["The boy","The cat","The farmer"],does:["studies","sleeps","paints"],what:["English","a fish","a wall"],
+  where:["in the classroom","in the pool","at the market"],when:["every morning","last year","at lunch"],
+  how:["carefully","slowly like a snail","noisily"],why:["because he wants to speak well","because he is cold","because he lost his shoes"]}},
+ {art:"🌻👧🚿",cap:"เด็กหญิงรดน้ำต้นไม้ในสวน",w:{
+  who:["The girl","The man","The baby"],does:["waters","paints","drives"],what:["the plants","the car","the table"],
+  where:["in the garden","in the office","in the cinema"],when:["every evening","every winter","at breakfast"],
+  how:["gently","fast","sadly"],why:["because they need water","because they are lost","because they are tired"]}},
+ {art:"🛋️👦👦🎬",cap:"จิมและจอห์นดูหนังในห้องนั่งเล่น",w:{
+  who:["Jim and John","Mom and Dad","The dogs"],does:["watch","wash","fly"],what:["a movie","a car","a river"],
+  where:["in the living room","in the park","on the farm"],when:["on Saturday night","on Monday morning","in the rain"],
+  how:["together","alone and angry","very quickly"],why:["because they love movies","because they are late","because they are sick"]}}
+];
+var HINT_SCENE=" ดูภาพอีกครั้งนะ แล้วคิดว่าคำตอบของ ";
+var $=function(s){return document.querySelector(s)};
+var st={lv:0,mode:1,step:0,mist:0,pend:0,opts:[],filled:[],pool:[],placed:[],tries:0,fin:false,msg:"",kind:"",wrong:[],lock:false};
+var total=0,doneKey={},won={};
+
+function shuf(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t}return a}
+function ans(){return KEYS.map(function(k){return LEVELS[st.lv].w[k][0]})}
+function full(){return ans().join(" ")+"."}
+function start(lv,mode){
+  st.lv=lv;st.mode=mode;st.step=0;st.mist=0;st.pend=0;st.filled=[];st.tries=0;st.fin=false;st.msg="";st.kind="";st.wrong=[];st.lock=false;
+  st.placed=[];
+  if(mode===1){st.opts=shuf(LEVELS[lv].w[KEYS[0]])}
+  else{var a=ans(),p;do{p=shuf(a.map(function(_,i){return i}))}while(p.join()===p.slice().sort().join());st.pool=p}
+  render();
+}
+function finish(){
+  st.fin=true;won[st.lv]=true;
+  var key=st.lv+"-"+st.mode;
+  if(!doneKey[key]){doneKey[key]=true;total+=st.pend}
+  st.pend=0;render();
+}
+function speak(){
+  try{var u=new SpeechSynthesisUtterance(full());u.lang="en-US";u.rate=.85;speechSynthesis.cancel();speechSynthesis.speak(u)}catch(e){}
+}
+
+function renderTabs(){
+  var h="";
+  LEVELS.forEach(function(l,i){h+='<button class="tab'+(i===st.lv?" on":"")+(won[i]?" won":"")+'" data-l="'+i+'" aria-pressed="'+(i===st.lv)+'"><b>ด่าน '+(i+1)+'</b><span class="st" aria-label="'+(won[i]?"ผ่านแล้ว":"ยังไม่ผ่าน")+'">★</span></button>'});
+  $("#tabs").innerHTML=h;
+  Array.prototype.forEach.call($("#modes").children,function(b){b.className=(+b.dataset.m===st.mode)?"on":""});
+}
+function renderScene(){
+  var l=LEVELS[st.lv];
+  $("#scene").innerHTML='<div class="art" aria-hidden="true">'+l.art+'</div><div class="cap">ด่าน '+(st.lv+1)+': '+l.cap+'</div>';
+}
+function renderStrip(){
+  var h="";
+  KEYS.forEach(function(k,i){
+    var cls="slot",w="…";
+    if(st.mode===1){
+      if(i<st.step||st.fin){cls+=" ok";w=LEVELS[st.lv].w[k][0]}
+      else if(i===st.step){cls+=" cur"}
+    }else if(st.fin){cls+=" ok";w=LEVELS[st.lv].w[k][0]}
+    h+='<div class="'+cls+'"><span class="q">'+Q[k][0]+'</span><span class="w">'+w+'</span></div>';
+  });
+  $("#strip").innerHTML=h;
+}
+function renderPlay(){
+  var el=$("#play"),h="";
+  if(st.fin){
+    var last=st.lv===LEVELS.length-1;
+    h='<div class="done"><h2>ผ่านด่านแล้ว ★</h2><p class="cap" style="margin:0">ประโยคเต็มของด่านนี้</p><p class="full">'+full()+'</p>'+
+      '<div class="row"><button class="btn" id="say">🔊 ฟังประโยค</button>'+
+      (last?'<button class="btn alt" id="again">เล่นด่าน 1 อีกครั้ง</button>':'<button class="btn alt" id="next">ด่านต่อไป</button>')+
+      '<button class="btn alt" id="redo">เล่นด่านนี้ซ้ำ</button></div></div>';
+    el.innerHTML=h;
+    $("#say").onclick=speak;
+    $("#redo").onclick=function(){start(st.lv,st.mode)};
+    if(last)$("#again").onclick=function(){start(0,st.mode)};else $("#next").onclick=function(){start(st.lv+1,st.mode)};
+    return;
+  }
+  if(st.mode===1){
+    var k=KEYS[st.step];
+    h='<p class="prompt">'+Q[k][0]+'<span>'+Q[k][1]+'</span></p><div class="opts">';
+    st.opts.forEach(function(o,i){h+='<button class="opt'+(st.wrong.indexOf(o)>=0?" bad":"")+'" data-o="'+i+'">'+o+'</button>'});
+    h+='</div><p class="msg '+st.kind+'" aria-live="polite">'+st.msg+'</p>';
+    el.innerHTML=h;
+    Array.prototype.forEach.call(el.querySelectorAll(".opt"),function(b){b.onclick=function(){pick(st.opts[+b.dataset.o])}});
+  }else{
+    var a=ans();
+    h='<p class="prompt">เรียงคำให้เป็นประโยค<span>กดคำเพื่อวาง กดซ้ำเพื่อเอาออก</span></p>'+
+      '<div class="lab">ประโยคของคุณ</div><div class="zone" id="zone">';
+    if(!st.placed.length)h+='<span class="hint">ยังไม่มีคำ</span>';
+    st.placed.forEach(function(ci,pos){h+='<button class="chip'+(st.wrong.indexOf(pos)>=0?" bad":"")+'" data-p="'+pos+'">'+a[ci]+'</button>'});
+    h+='</div><div class="lab">คำที่เหลือ</div><div class="zone" style="border-style:solid">';
+    st.pool.forEach(function(ci){if(st.placed.indexOf(ci)<0)h+='<button class="chip" data-c="'+ci+'">'+a[ci]+'</button>'});
+    h+='</div><p class="msg '+st.kind+'" aria-live="polite">'+st.msg+'</p>'+
+      '<div class="row"><button class="btn" id="chk"'+(st.placed.length<a.length?" disabled":"")+'>ตรวจคำตอบ</button><button class="btn alt" id="clr">ล้างทั้งหมด</button></div>';
+    el.innerHTML=h;
+    Array.prototype.forEach.call(el.querySelectorAll("[data-c]"),function(b){b.onclick=function(){st.placed.push(+b.dataset.c);st.wrong=[];st.msg="";st.kind="";renderPlay()}});
+    Array.prototype.forEach.call(el.querySelectorAll("[data-p]"),function(b){b.onclick=function(){st.placed.splice(+b.dataset.p,1);st.wrong=[];st.msg="";st.kind="";renderPlay()}});
+    $("#clr").onclick=function(){st.placed=[];st.wrong=[];st.msg="";st.kind="";renderPlay()};
+    $("#chk").onclick=check;
+  }
+}
+function pick(word){
+  if(st.lock)return;
+  var k=KEYS[st.step],right=LEVELS[st.lv].w[k][0];
+  if(word===right){
+    st.pend+=st.mist?5:10;st.msg="ถูกต้อง!";st.kind="good";st.lock=true;st.mist=0;st.wrong=[];
+    st.step++;
+    renderScore();renderStrip();
+    // show feedback briefly, then move on
+    $("#play").querySelector(".msg").textContent="ถูกต้อง!";$("#play").querySelector(".msg").className="msg good";
+    Array.prototype.forEach.call($("#play").querySelectorAll(".opt"),function(b){if(b.textContent===right)b.classList.add("good")});
+    setTimeout(function(){
+      st.lock=false;st.msg="";st.kind="";
+      if(st.step>=KEYS.length){finish()}else{st.opts=shuf(LEVELS[st.lv].w[KEYS[st.step]]);render()}
+    },550);
+  }else{
+    st.mist++;st.wrong.push(word);st.kind="bad";
+    st.msg="ยังไม่ใช่นะ ลองใหม่!"+HINT_SCENE+"“"+Q[k][1]+"”";
+    var sc=$("#scene");sc.classList.remove("pulse");void sc.offsetWidth;sc.classList.add("pulse");
+    renderPlay();
+  }
+}
+function check(){
+  var a=ans(),ok=true;st.wrong=[];
+  st.placed.forEach(function(ci,pos){if(ci!==pos){ok=false;st.wrong.push(pos)}});
+  if(ok){st.pend+=st.tries?15:30;finish();renderScore();return}
+  st.tries++;st.kind="bad";
+  st.msg="ยังไม่ถูก คำที่ขอบแดงอยู่ผิดที่ ลองเรียงตาม Who → Does what → What → Where → When → How → Why";
+  var sc=$("#scene");sc.classList.remove("pulse");void sc.offsetWidth;sc.classList.add("pulse");
+  renderPlay();
+}
+function renderScore(){$("#score").textContent=total+st.pend}
+function render(){renderTabs();renderScene();renderStrip();renderPlay();renderScore()}
+
+$("#tabs").addEventListener("click",function(e){var b=e.target.closest("[data-l]");if(b)start(+b.dataset.l,st.mode)});
+$("#modes").addEventListener("click",function(e){var b=e.target.closest("[data-m]");if(b)start(st.lv,+b.dataset.m)});
+start(0,1);
+</script>
+
+</body></html>
